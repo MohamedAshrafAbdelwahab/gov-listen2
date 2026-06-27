@@ -1,0 +1,14 @@
+{
+  "name": "Gov-Listen",
+  "short_name": "Gov-Listen",
+  "description": "Your direct line to local governance in Africa — AI-powered civic reporting.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f6fa",
+  "theme_color": "#1a2540",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
