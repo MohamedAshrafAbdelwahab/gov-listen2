@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, ArrowLeft, Camera, Send, X, CheckCircle2, Loader2 } from "lucide-react";
+import { Mic, Square, ArrowLeft, Camera, Send, X, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useAppLang, useT } from "@/lib/use-lang";
 import { getProfile, saveReport, newTrackingId, type Report } from "@/lib/storage";
@@ -60,92 +60,19 @@ function getSpeechRecognitionCtor() {
   return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
 }
 
-const GREET_EN = `You are Gov-Listen, an AI assistant that helps African citizens file civic reports.
-Generate a short, warm, personalized welcome greeting (1-2 sentences) for the user.
-Mention their name, optionally their location, and invite them to describe the problem.
-Respond in the user's conversation language.
-Output STRICTLY a single JSON object: { "greeting": "..." }`;
-
-const GREET_AR = `أنت Gov-Listen، مساعد ذكي يساعد المواطنين الأفارقة على تقديم بلاغات مدنية.
-أنشئ ترحيباً قصيراً ودافئاً مخصصاً للمستخدم (1-2 جمل).
-اذكر اسمه، وموقعه إن وُجد، وادعه لوصف المشكلة.
-أجب بنفس لغة المستخدم.
-أخرج فقط كائن JSON واحد: { "greeting": "..." }`;
-
-const SYSTEM_EN = `You are Gov-Listen, an AI assistant that helps African citizens file civic reports (broken roads, water leaks, power cuts, waste, safety, etc.) to local government authorities.
-
-You must respond in the same language as the user's request and the conversation context.
-
-Your job each turn:
-1. Read the conversation so far and extract any new fields.
-2. Decide if you still need information. Required fields: title (short), description (clear), category, priority, address (text near where it happened). A photo is strongly encouraged but optional.
-3. Allowed category values: roads, water, electricity, waste, safety, other.
-4. Allowed priority values: low, medium, urgent.
-5. If a key field is still missing, ask ONE short friendly follow-up question. If a photo would clearly help and none is attached, you may ask for one.
-6. When you have enough, set done=true and return a comprehensive professional report description (6-10 sentences) structured as follows:
-   - **Summary**: One sentence stating the issue type and location.
-   - **Incident Details**: 2-3 sentences describing the problem, when it occurs, and current conditions.
-   - **Impact Assessment**: 2-3 sentences explaining the impact on citizens, safety risks, and urgency.
-   - **Recommended Actions**: 2-3 sentences suggesting specific actions the authority should take and expected outcome.
-
-Output STRICTLY a single JSON object, no prose, no markdown, with shape:
-{
-  "updates": { "title"?: string, "description"?: string, "category"?: string, "priority"?: string, "address"?: string, "askPhoto"?: boolean },
-  "nextQuestion": string | null,
-  "done": boolean,
-  "finalDescription"?: string
-}`;
-
-const SYSTEM_AR = `أنت Gov-Listen، مساعد ذكي يساعد المواطنين الأفارقة على تقديم بلاغات مدنية (طرق مكسورة، تسرّب مياه، انقطاع كهرباء، نفايات، سلامة، إلخ) للجهات الحكومية المحلية.
-
-مهمتك في كل دور:
-1. اقرأ المحادثة واستخرج أي حقول جديدة.
-2. الحقول المطلوبة: عنوان قصير، وصف واضح، التصنيف، الأولوية، عنوان أو وصف للموقع. الصورة مستحبّة لكنها اختيارية.
-3. قيم التصنيف المسموحة: roads, water, electricity, waste, safety, other.
-4. قيم الأولوية: low, medium, urgent.
-5. إذا نقص حقل مهم اسأل سؤالاً واحداً قصيراً وودوداً. يمكنك طلب صورة إن كانت ستساعد.
-6. عندما تكتمل البيانات اضبط done=true وأعد وصفاً احترافياً منمّقاً (6-10 جمل) مُقسّماً كالتالي:
-   - **ملخص**: جملة واحدة تحدد نوع المشكلة وموقعها.
-   - **تفاصيل الحادث**: 2-3 جمل تصف المشكلة والحالات الراهنة.
-   - **تقييم التأثير**: 2-3 جمل تشرح التأثير على المواطنين ومخاطر السلامة والمستوى الإلحاحي.
-   - **الإجراءات المقترحة**: 2-3 جمل تقترح إجراءات محددة يتعين على الجهة اتخاذها والمخرج المتوقع.
-
-أعد فقط كائن JSON واحد بدون أي شرح وبدون Markdown بالشكل:
-{
-  "updates": { "title"?: string, "description"?: string, "category"?: string, "priority"?: string, "address"?: string, "askPhoto"?: boolean },
-  "nextQuestion": string | null,
-  "done": boolean,
-  "finalDescription"?: string
-}
-
-اكتب الأسئلة والوصف النهائي باللغة العربية.`;
-
-const AI_MODEL = "google/gemini-2.0-flash";
-
-async function puterChat(messages: { role: string; content: string }[]): Promise<string> {
-  const puter = window.puter;
-  if (!puter?.ai?.chat) throw new Error("Puter.js not loaded");
-  const response = await puter.ai.chat(messages, { model: AI_MODEL });
-  return typeof response === "string" ? response : String(response);
-}
-
-function parseJsonFromText(text: string): Record<string, unknown> {
-  const cleaned = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const start = cleaned.indexOf("{");
-    if (start === -1) throw new Error("No JSON object found in AI response");
-    let depth = 0;
-    for (let i = start; i < cleaned.length; i += 1) {
-      if (cleaned[i] === "{") depth += 1;
-      else if (cleaned[i] === "}") {
-        depth -= 1;
-        if (depth === 0) return JSON.parse(cleaned.slice(start, i + 1));
-      }
-    }
-    throw new Error("No JSON object found in AI response");
+async function fetchAI(endpoint: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = (await res.json()) as Record<string, unknown>;
+  if (!res.ok) {
+    const err = new Error((json.message as string) ?? "AI request failed");
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
   }
+  return json;
 }
 
 function ReportPage() {
@@ -163,6 +90,7 @@ function ReportPage() {
   const [liveTranscript, setLiveTranscript] = useState("");
   const [done, setDone] = useState(false);
   const [finalReport, setFinalReport] = useState<Report | null>(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -176,18 +104,18 @@ function ReportPage() {
   useEffect(() => {
     const profile = getProfile();
     if (!profile || !profile.name) return;
-    const greetSystem = lang === "ar" ? GREET_AR : GREET_EN;
-    const greetUser = lang === "ar"
-      ? `المستخدم: ${profile.name}${profile.city ? `، من ${profile.city}` : ""}${profile.country ? `، ${profile.country}` : ""}\nاللغة: العربية.`
-      : `User: ${profile.name}${profile.city ? `, from ${profile.city}` : ""}${profile.country ? `, ${profile.country}` : ""}\nLanguage: ${lang}.`;
-    puterChat([
-      { role: "system", content: greetSystem },
-      { role: "user", content: greetUser },
-    ])
-      .then((text) => {
-        const parsed = parseJsonFromText(text);
-        if ((parsed as Record<string, unknown>).greeting) {
-          setMessages([{ role: "assistant", content: (parsed as Record<string, string>).greeting }]);
+    fetchAI("/api/extract", {
+      action: "greet",
+      lang,
+      country: profile.country,
+      city: profile.city,
+      reporter: { name: profile.name },
+      fields: {},
+      conversation: [],
+    })
+      .then((data) => {
+        if (data.greeting) {
+          setMessages([{ role: "assistant", content: String(data.greeting) }]);
         }
       })
       .catch(() => {});
@@ -204,48 +132,51 @@ function ReportPage() {
     const profile = getProfile()!;
     setThinking(true);
     try {
-      const systemPrompt = lang === "ar" ? SYSTEM_AR : SYSTEM_EN;
-      const context = `Context:
-- Reporter: ${profile.name}${profile.phone ? `, phone ${profile.phone}` : ""}
-- Country: ${profile.country}${profile.city ? `, city ${profile.city}` : ""}
-- Fields so far: ${JSON.stringify(nextFields)}
-- Photo attached: ${hasPhoto ? "yes" : "no"}
+      const data = await fetchAI("/api/extract", {
+        lang,
+        country: profile.country,
+        city: profile.city,
+        reporter: { name: profile.name, phone: profile.phone },
+        fields: nextFields,
+        conversation: next,
+      });
 
-Conversation:
-${next.map((m) => `${m.role}: ${m.content}`).join("\n")}`;
-      const userPrompt = lang === "ar"
-        ? `${context}\nاتبع اللغة العربية في جميع الردود. أجب فقط بكائن JSON واحد بدون أي شرح.`
-        : `${context}\nFollow the same language as the user's conversation. Answer only with a single JSON object without any explanation.`;
+      if (data.error === "quota_exceeded") {
+        setQuotaExceeded(true);
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: t.quotaExceeded },
+        ]);
+        return;
+      }
 
-      const text = await puterChat([
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ]);
-
-      const data = parseJsonFromText(text) as {
-        updates?: Fields & { askPhoto?: boolean };
-        nextQuestion?: string | null;
-        done?: boolean;
-        finalDescription?: string;
-      };
-
-      const merged: Fields = { ...nextFields, ...(data.updates ?? {}), hasPhoto };
+      const updates = data.updates as (Fields & { askPhoto?: boolean }) | undefined;
+      const merged: Fields = { ...nextFields, ...(updates ?? {}), hasPhoto };
       delete (merged as Fields & { askPhoto?: boolean }).askPhoto;
       setFields(merged);
 
       if (data.done && data.finalDescription) {
-        await finalize(merged, data.finalDescription);
+        await finalize(merged, String(data.finalDescription));
         return;
       }
       if (data.nextQuestion) {
-        setMessages((m) => [...m, { role: "assistant", content: data.nextQuestion! }]);
+        setMessages((m) => [...m, { role: "assistant", content: String(data.nextQuestion) }]);
       }
     } catch (err) {
       console.error(err);
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: lang === "ar" ? "حدث خطأ مؤقت، حاول مرة أخرى." : "Sorry, something went wrong. Please try again." },
-      ]);
+      const status = (err as Error & { status?: number }).status;
+      if (status === 429) {
+        setQuotaExceeded(true);
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: t.quotaExceeded },
+        ]);
+      } else {
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: lang === "ar" ? "حدث خطأ مؤقت، حاول مرة أخرى." : "Sorry, something went wrong. Please try again." },
+        ]);
+      }
     } finally {
       setThinking(false);
     }
@@ -403,6 +334,15 @@ ${next.map((m) => `${m.role}: ${m.content}`).join("\n")}`;
 
         {/* Conversation */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {quotaExceeded && (
+            <div className="card-soft p-4 rounded-2xl border-warning/40 bg-warning/5 animate-fade-up">
+              <div className="flex items-center gap-3 mb-2">
+                <AlertTriangle className="size-5 text-warning shrink-0" />
+                <p className="font-semibold text-sm text-foreground">{t.quotaExceeded}</p>
+              </div>
+            </div>
+          )}
+
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"} animate-fade-up`}>
               <div

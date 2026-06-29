@@ -102,6 +102,11 @@ async function runAI(messages: { role: string; content: string }[]): Promise<str
   const json = (await res.json()) as Record<string, unknown>;
   
   if (!json.success) {
+    const errors = json.errors as Array<{ code?: number; message?: string }> | undefined;
+    const errorCode = errors?.[0]?.code;
+    if (errorCode === 11001 || errorCode === 10040) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
     throw new Error(JSON.stringify(json.errors ?? "AI request failed"));
   }
 
@@ -132,7 +137,15 @@ export const Route = createFileRoute("/api/extract")({
             const cleaned = String(text).trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
             const parsed = JSON.parse(cleaned);
             return Response.json(parsed);
-          } catch { return Response.json({ greeting: "" }); }
+          } catch (err) {
+            if (err instanceof Error && err.message === "QUOTA_EXCEEDED") {
+              return Response.json(
+                { error: "quota_exceeded", message: body.lang === "ar" ? "تم استنفاد حد الاستخدام اليومي للذكاء الاصطناعي. يرجى المحاولة مرة أخرى غداً." : "AI daily quota exceeded. Please try again tomorrow." },
+                { status: 429 },
+              );
+            }
+            return Response.json({ greeting: "" });
+          }
         }
 
         const context = `Context:
@@ -188,6 +201,12 @@ ${body.conversation.map((m) => `${m.role}: ${m.content}`).join("\n")}`;
           }
           return Response.json(parsed);
         } catch (err) {
+          if (err instanceof Error && err.message === "QUOTA_EXCEEDED") {
+            return Response.json(
+              { error: "quota_exceeded", message: body.lang === "ar" ? "تم استنفاد حد الاستخدام اليومي للذكاء الاصطناعي. يرجى المحاولة مرة أخرى غداً." : "AI daily quota exceeded. Please try again tomorrow." },
+              { status: 429 },
+            );
+          }
           const msg = err instanceof Error ? err.message : "AI error";
           return new Response(msg, { status: 500 });
         }

@@ -104,6 +104,8 @@ export const translations = {
     win3: "Clean architecture using modern full-stack technology — built to scale across the continent.",
     win4: "Sovereign by design — each of the 55 AU states gets an independent, tailored instance.",
     win5: "Human-centred voice-first design works for everyone, regardless of education or literacy.",
+    quotaExceeded:
+      "Our AI has reached its daily usage limit. Don't worry — you can still type your report manually below, or try again tomorrow when the limit resets. Thank you for your patience!",
     submitCompetition: "Submitted for Ele-Vate African Youth in AI & Robotics",
     getStarted: "Get Started",
   },
@@ -212,6 +214,8 @@ export const translations = {
     win5: "تصميم voice-first يشتغل مع أي حد بغض النظر عن تعليمه أو مستواه.",
     submitCompetition: "مقدّم لمسابقة Ele-Vate African Youth in AI & Robotics",
     getStarted: "ابدأ الآن",
+    quotaExceeded:
+      "وصل الذكاء الاصطناعي إلى الحد اليومي للاستخدام. لا تقلق — يمكنك كتابة بلاغك يدوياً أدناه، أو المحاولة مجدداً غداً عند إعادة الحد. شكراً لصبرك!",
   },
   sw: {
     appName: "Gov-Listen",
@@ -314,6 +318,8 @@ export const translations = {
     win3: "Sanaa safi ya kiufundi inayotumia teknolohiya za kisasa — kuandaliwa kuzaa katika bara la Afrika.",
     win4: "Uhuru wa nchi — kila nchi kati ya 55 za Muungano ina toleo lake la kujitegemea.",
     win5: "Muundo wa sauti-kwanza unafanya kazi kwa kila mtu, bila kujali elimu au kusoma.",
+    quotaExceeded:
+      "AI imefikia kikomo chake cha matumizi ya siku. Usijali — bado unaweza kuandika ripoti yako mwenyewe hapa chini, au jaribu tena kesho.",
     submitCompetition: "Iliyotumwa kwa Ele-Vate African Youth in AI & Robotics",
     getStarted: "Anza",
   },
@@ -418,6 +424,8 @@ export const translations = {
     win3: "Àwọ-iṣẹ tutu ti imọ-ẹrọ — ti a ṣe lati gbooro kọja ara Afrika.",
     win4: "Ẹtọ ara ẹni - orilẹ kọọkan ti awọn orilẹ 55 ni ẹya rẹ ti ara ẹni.",
     win5: "Apẹrẹ orin-akọkọ n ṣiṣẹ fun gbogbo eniyan, pai lori ẹkọ tabi kawe.",
+    quotaExceeded:
+      "AI ti de ipin limiti la ojo ti o lo. Ma sarabi — o le tesi ko iroyin rẹ nisan, tabi gbiyanju lehin ọla.",
     submitCompetition: "Ti a firanṣẹ si Ele-Vate African Youth in AI & Robotics",
     getStarted: "Bẹrẹ",
   },
@@ -522,6 +530,8 @@ export const translations = {
     win3: "Tsarin fasaha mai kyau - an gina shi don girma a hankali Afrika.",
     win4: "Iko na kasa - kasa kowandir daga 55 ta Jama'ar ta da ƙasuwar kanua.",
     win5: "Tsarin sitikin farko yana aiki ga kowa, ba tare da kula ga ilimi ko karantawa ba.",
+    quotaExceeded:
+      "AI ta kai iyakantattiyar amfani ta yau. Ku rashin damu — za ku iya rubuta labarin ku da hannu a ƙasa, ko sake gwadawa gobe.",
     submitCompetition: "An aika ga Ele-Vate African Youth in AI & Robotics",
     getStarted: "Fara",
   },
@@ -624,6 +634,8 @@ export const translations = {
     win3: "ንጹህ አርክ ማሪክ ዓይነ-ስሙ ኢኮኖሚክስ — መስር ተውሪዳሪዝ በ አፍሪካ አህ.",
     win4: "ተመሳሳይ በነሱ ዲሳይን — እያንዳንዱ 55 አፍሪካዊ ህብረት አባል ሕገወጥ ተወክሎ ሞሌ.",
     win5: "ሰይሙ-ብረ ቴክ ሰው ስለ ሞላ ዋ ስለ ውሴት ወይም ሕገ-ቤቱ.",
+    quotaExceeded:
+      "AI የዕለት አቀፍ መጠን ዘርግቷል። አትጨነቁ — ሪፖርትዎን ከታች በእጅ መጻፍ ይችላሉ፣ ወይም እንኳን ዛሬ እንደገና ይሞክሩ።",
     submitCompetition: "ተለክሞ Ele-Vate African Youth in AI & Robotics",
     getStarted: "ሁን",
   },
@@ -728,6 +740,8 @@ export const translations = {
     win3: "Iteknikhi eluhlaza — yakhelwe ukukhula kwi-Afrika.",
     win4: "Imihlala yobukhosi — ilizwe ngalinye kule 55 e-African Union linendawo yalo.",
     win5: "Uyilo olunqulela umlomo lusebenzi kuwo onke, nokukholelwa okanye ukufunda.",
+    quotaExceeded:
+      "I-AI ifikelele ekupheleni kosuku lwako. Ungakhathali — usenokubhalisa inkcazo yakho ngezandla emva, okanye uzama kwakhona ngomso.",
     submitCompetition: "Ithunyelwe kuEle-Vate African Youth in AI & Robotics",
     getStarted: "Qala",
   },
@@ -832,6 +846,8 @@ export const translations = {
     win3: "I-tekhnoloji emihle yekhompyutha — yakhelwe ukukhula nokuxazula e-Afrika.",
     win4: "Imiholo yezwe — izwe ngalinye kubhala 55 kwakamaYunayithi linenhloso yalo.",
     win5: "Ukwakhiwa kokukhuluma kokuqala kusebenza kumuntu wonke, ngaphandle kokucabanga noma ukufunda.",
+    quotaExceeded:
+      "I-AI ifinyelele ekupheleni kosuku lwako lokusetshenziswa. Ungakhathali — usenokubhala umbiko wakho ngezansi, noma uzama futhi kusasa.",
     submitCompetition: "Ithumelwe ku-Ele-Vate African Youth in AI & Robotics",
     getStarted: "Qala",
   },
