@@ -78,44 +78,41 @@ const SYSTEM_AR = `أنت Gov-Listen، مساعد ذكي يساعد المواط
 
 اكتب الأسئلة والوصف النهائي باللغة العربية.`;
 
-const CF_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
+const ZEN_MODEL = "deepseek-v4-flash-free";
+const ZEN_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
 
 async function runAI(messages: { role: string; content: string }[]): Promise<string> {
-  const CF_ACCOUNT_ID = process.env.CF_AI_ACCOUNT_ID;
-  const CF_API_TOKEN = process.env.CF_AI_API_TOKEN;
-  if (!CF_ACCOUNT_ID || !CF_API_TOKEN) {
-    throw new Error("Missing CF_AI_ACCOUNT_ID or CF_AI_API_TOKEN in env");
+  const ZEN_API_KEY = process.env.ZEN_API_KEY;
+  if (!ZEN_API_KEY) {
+    throw new Error("Missing ZEN_API_KEY in env");
   }
 
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${CF_AI_MODEL}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${CF_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ messages }),
+  const res = await fetch(ZEN_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${ZEN_API_KEY}`,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      model: ZEN_MODEL,
+      messages,
+      temperature: 0.3,
+      max_tokens: 2048,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    if (res.status === 429) throw new Error("QUOTA_EXCEEDED");
+    throw new Error(`Zen API error ${res.status}: ${body}`);
+  }
 
   const json = (await res.json()) as Record<string, unknown>;
+  const choices = json.choices as Array<{ message?: { content?: string } }> | undefined;
+  const content = choices?.[0]?.message?.content;
 
-  if (!json.success) {
-    const errors = json.errors as Array<{ code?: number; message?: string }> | undefined;
-    const errorCode = errors?.[0]?.code;
-    if (errorCode === 11001 || errorCode === 10040) {
-      throw new Error("QUOTA_EXCEEDED");
-    }
-    throw new Error(JSON.stringify(json.errors ?? "AI request failed"));
-  }
-
-  const result = json.result as Record<string, unknown> | undefined;
-  const response = result?.response;
-
-  if (typeof response === "string") return response;
-  if (response != null) return String(response);
-  throw new Error("Unexpected AI response: " + JSON.stringify(json.result));
+  if (typeof content === "string" && content.trim()) return content;
+  throw new Error("Unexpected Zen API response: " + JSON.stringify(json));
 }
 
 function extractJsonObject(value: string): string | null {
