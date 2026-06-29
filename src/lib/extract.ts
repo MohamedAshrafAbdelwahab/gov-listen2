@@ -78,8 +78,68 @@ const SYSTEM_AR = `أنت Gov-Listen، مساعد ذكي يساعد المواط
 
 اكتب الأسئلة والوصف النهائي باللغة العربية.`;
 
-const ZEN_MODEL = "deepseek-v4-flash-free";
 const ZEN_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions";
+const ZEN_MODELS = ["deepseek-v4-flash-free", "mimo-v2.5-free", "big-pickle"] as const;
+
+type ZenChoice = {
+  message?: { content?: string; reasoning_content?: string };
+  finish_reason?: string;
+};
+type ZenResponse = { choices?: ZenChoice[]; error?: { message?: string; code?: number } };
+
+async function callZenAPI(
+  model: string,
+  messages: { role: string; content: string }[],
+  apiKey: string,
+): Promise<{ content: string; reasoning?: string }> {
+  const res = await fetch(ZEN_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: 0.3,
+      max_tokens: 16384,
+      reasoning_effort: "low",
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    if (res.status === 429) throw new Error("QUOTA_EXCEEDED");
+    throw new Error(`Zen API ${model} error ${res.status}: ${body}`);
+  }
+
+  const json = (await res.json()) as ZenResponse;
+
+  if (json.error) {
+    if (json.error.code === 429) throw new Error("QUOTA_EXCEEDED");
+    throw new Error(`Zen API ${model}: ${json.error.message}`);
+  }
+
+  const choice = json.choices?.[0];
+  const content = choice?.message?.content ?? "";
+  const reasoning = choice?.message?.reasoning_content;
+
+  return { content: content.trim(), reasoning };
+}
+
+function extractJsonFromText(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  for (let i = start; i < text.length; i += 1) {
+    if (text[i] === "{") depth += 1;
+    else if (text[i] === "}") {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
 
 async function runAI(messages: { role: string; content: string }[]): Promise<string> {
   const ZEN_API_KEY = process.env.ZEN_API_KEY;
@@ -87,32 +147,27 @@ async function runAI(messages: { role: string; content: string }[]): Promise<str
     throw new Error("Missing ZEN_API_KEY in env");
   }
 
-  const res = await fetch(ZEN_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${ZEN_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: ZEN_MODEL,
-      messages,
-      temperature: 0.3,
-      max_tokens: 2048,
-    }),
-  });
+  const errors: string[] = [];
 
-  if (!res.ok) {
-    const body = await res.text();
-    if (res.status === 429) throw new Error("QUOTA_EXCEEDED");
-    throw new Error(`Zen API error ${res.status}: ${body}`);
+  for (const model of ZEN_MODELS) {
+    try {
+      const { content, reasoning } = await callZenAPI(model, messages, ZEN_API_KEY);
+
+      if (content) return content;
+
+      if (reasoning) {
+        const jsonInReasoning = extractJsonFromText(reasoning);
+        if (jsonInReasoning) return jsonInReasoning;
+      }
+
+      errors.push(`${model}: empty content`);
+    } catch (err) {
+      if (err instanceof Error && err.message === "QUOTA_EXCEEDED") throw err;
+      errors.push(`${model}: ${err instanceof Error ? err.message : "unknown"}`);
+    }
   }
 
-  const json = (await res.json()) as Record<string, unknown>;
-  const choices = json.choices as Array<{ message?: { content?: string } }> | undefined;
-  const content = choices?.[0]?.message?.content;
-
-  if (typeof content === "string" && content.trim()) return content;
-  throw new Error("Unexpected Zen API response: " + JSON.stringify(json));
+  throw new Error("All Zen models failed: " + errors.join("; "));
 }
 
 function extractJsonObject(value: string): string | null {
